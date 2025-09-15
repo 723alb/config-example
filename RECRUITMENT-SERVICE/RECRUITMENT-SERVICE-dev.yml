@@ -1,0 +1,111 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  servlet:
+    multipart:
+      file-size-threshold: 2048
+      max-file-size: 5MB
+
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: false
+
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+    main:
+      banner-mode: "off"
+
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5433/recruitment_db}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
+    properties:
+      jakarta:
+        persistence:
+          sharedCache:
+            mode: UNSPECIFIED
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+logging:
+  level:
+    root: info
+    by.javaguru.recruitment: debug
+    org.hibernate.SQL: debug
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      accountingService:
+        failureRateThreshold: 50
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 2
+        minimumNumberOfCalls: 1
+        eventConsumerBufferSize: 10
+        registerHealthIndicator: true
+        permittedNumberOfCallsInHalfOpenState: 3
+      securityService:
+        failureRateThreshold: 50
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 2
+        minimumNumberOfCalls: 1
+        eventConsumerBufferSize: 10
+        registerHealthIndicator: true
+        permittedNumberOfCallsInHalfOpenState: 3
+    circuit-breaker-aspect-order: 1
+  retry:
+    instances:
+      accountingService:
+        maxAttempts: 5
+        waitDuration: 5000
+      securityService:
+        maxAttempts: 5
+        waitDuration: 5000
+    retry-aspect-order: 2
+
+app:
+  integration:
+    rest:
+      accounting:
+        service-url: http://ACCOUNTING-SERVICE
+        endpoints:
+          allocation:
+            path: /api/v1/accounting/allocation
+      security:
+        service-url: http://SECURITY-SERVICE
+        endpoints:
+          check:
+            path: /api/v1/security/check
+      profiler:
+        service-url: http://PROFILER-SERVICE
+        endpoints:
+          cv:
+            path: /api/v1/cvs
+        mock:
+          enabled: true  # Установить false когда profiler service будет готов
+
