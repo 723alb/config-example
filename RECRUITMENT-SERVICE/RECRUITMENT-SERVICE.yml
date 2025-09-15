@@ -1,0 +1,154 @@
+ # Локальная конфигурация — минимальные настройки
+ # Основная конфигурация загружается из Config Server (через Eureka)
+
+server:
+  port: ${SERVER_PORT:8081}
+spring:
+  application:
+    name: RECRUITMENT-SERVICE
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  config:
+    import:
+      - "optional:configserver:"  # источник конфигурации — discovery через Eureka
+
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        service-id: CONFIG-SERVER
+      fail-fast: false
+      retry:
+        initial-interval: 1000
+        max-attempts: 6
+        max-interval: 2000
+        multiplier: 1.1
+
+    openfeign:
+      circuitbreaker:
+        enabled: false
+
+  servlet:
+    multipart:
+      file-size-threshold: 2048
+      max-file-size: 5MB
+
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+    main:
+      banner-mode: "off"
+
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
+    properties:
+      jakarta:
+        persistence:
+          sharedCache:
+            mode: UNSPECIFIED
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DISCOVERY_SERVICE_URL:http://localhost:8761/eureka/}
+    fetch-registry: true
+    registry-fetch-interval-seconds: 5
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,env,metrics,beans,circuitbreakerevents,retry
+  endpoint:
+    health:
+      show-details: always
+      enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+
+logging:
+  level:
+    root: info
+    by.javaguru.recruitment: debug
+    org.hibernate.SQL: debug
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      accountingService:
+        failureRateThreshold: 50
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 2
+        minimumNumberOfCalls: 1
+        eventConsumerBufferSize: 10
+        registerHealthIndicator: true
+        permittedNumberOfCallsInHalfOpenState: 3
+      securityService:
+        failureRateThreshold: 50
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 2
+        minimumNumberOfCalls: 1
+        eventConsumerBufferSize: 10
+        registerHealthIndicator: true
+        permittedNumberOfCallsInHalfOpenState: 3
+    circuit-breaker-aspect-order: 1
+  retry:
+    instances:
+      accountingService:
+        maxAttempts: 5
+        waitDuration: 5000
+      securityService:
+        maxAttempts: 5
+        waitDuration: 5000
+    retry-aspect-order: 2
+
+app:
+  integration:
+    rest:
+      accounting:
+        service-url: http://ACCOUNTING-SERVICE
+        endpoints:
+          allocation:
+            path: /api/v1/accounting/allocation
+      security:
+        service-url: http://SECURITY-SERVICE
+        endpoints:
+          check:
+            path: /api/v1/security/check
+      profiler:
+        service-url: http://PROFILER-SERVICE
+        endpoints:
+          cv:
+            path: /api/v1/cvs
+        mock:
+          enabled: true
