@@ -127,6 +127,9 @@ resilience4j:
       securityService:
         maxAttempts: 5
         waitDuration: 5000
+      profilerService:
+        maxAttempts: 1
+        waitDuration: 0
     retry-aspect-order: 2
 
 app:
