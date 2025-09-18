@@ -118,6 +118,12 @@ resilience4j:
         eventConsumerBufferSize: 10
         registerHealthIndicator: true
         permittedNumberOfCallsInHalfOpenState: 3
+      profilerService:
+        failureRateThreshold: 50
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 10s
     circuit-breaker-aspect-order: 1
   retry:
     instances:
